@@ -286,10 +286,11 @@ class TransformerForDiffusion(ModuleAttrMixin):
             timesteps = timesteps[None].to(sample.device)
         # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
         timesteps = timesteps.expand(sample.shape[0])
-        time_emb = self.time_emb(timesteps).unsqueeze(1)
+        time_emb = self.time_emb(timesteps).unsqueeze(1) # Jimmy: sin
         # (B,1,n_emb)
 
         # process input
+        # Jimmy: input is the action with noise
         input_emb = self.input_emb(sample)
 
         if self.encoder_only:
