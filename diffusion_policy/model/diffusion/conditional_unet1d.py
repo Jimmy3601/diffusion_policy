@@ -11,6 +11,9 @@ from diffusion_policy.model.diffusion.positional_embedding import SinusoidalPosE
 
 logger = logging.getLogger(__name__)
 
+# Jimmy: the so-called convolution network implmentation of the episilon-theta noise prediction network
+
+
 class ConditionalResidualBlock1D(nn.Module):
     def __init__(self, 
             in_channels, 
@@ -22,7 +25,7 @@ class ConditionalResidualBlock1D(nn.Module):
         super().__init__()
 
         self.blocks = nn.ModuleList([
-            Conv1dBlock(in_channels, out_channels, kernel_size, n_groups=n_groups),
+            Conv1dBlock(in_channels, out_channels, kernel_size, n_groups=n_groups), # Jimmy: first 
             Conv1dBlock(out_channels, out_channels, kernel_size, n_groups=n_groups),
         ])
 
@@ -33,8 +36,10 @@ class ConditionalResidualBlock1D(nn.Module):
             cond_channels = out_channels * 2
         self.cond_predict_scale = cond_predict_scale
         self.out_channels = out_channels
-        self.cond_encoder = nn.Sequential(
-            nn.Mish(),
+
+        # Jimmy: Linear network to train scale and bias
+        self.cond_encoder = nn.Sequential( 
+            nn.Mish(), # Jimmy:  Mish act. function
             nn.Linear(cond_dim, cond_channels),
             Rearrange('batch t -> batch t 1'),
         )
@@ -51,8 +56,8 @@ class ConditionalResidualBlock1D(nn.Module):
             returns:
             out : [ batch_size x out_channels x horizon ]
         '''
-        out = self.blocks[0](x)
-        embed = self.cond_encoder(cond)
+        out = self.blocks[0](x) # Jimmy: first 1x1 conv
+        embed = self.cond_encoder(cond) # Jimmy: action embedding
         if self.cond_predict_scale:
             embed = embed.reshape(
                 embed.shape[0], 2, self.out_channels, 1)
@@ -61,7 +66,7 @@ class ConditionalResidualBlock1D(nn.Module):
             out = scale * out + bias
         else:
             out = out + embed
-        out = self.blocks[1](out)
+        out = self.blocks[1](out) # Jimmy: second 1x1 conv
         out = out + self.residual_conv(x)
         return out
 
@@ -83,7 +88,7 @@ class ConditionalUnet1D(nn.Module):
 
         dsed = diffusion_step_embed_dim
         diffusion_step_encoder = nn.Sequential(
-            SinusoidalPosEmb(dsed),
+            SinusoidalPosEmb(dsed), # Jimmy: sine embedding
             nn.Linear(dsed, dsed * 4),
             nn.Mish(),
             nn.Linear(dsed * 4, dsed),
